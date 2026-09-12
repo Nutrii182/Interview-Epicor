@@ -1,18 +1,23 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { User } from '../../models/user.model';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Role } from '../../../roles/models/role.model';
+import { Router, RouterModule } from '@angular/router';
+import { Store } from '@ngrx/store';
+import * as UsersActions from '../../stores/users.actions';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule, ConfirmDialogComponent],
   template: `
-    <div class="roles-list">
-      <div *ngIf="loading" class="loading">Cargando roles...</div>
+    <div class="users-list">
 
-      <!-- <table *ngIf="!loading"> -->
+    @if (loading) {
+      <div class="loading">Cargando usuarios...</div>
+    } @else {
       <table>
         <thead>
           <tr>
@@ -28,30 +33,33 @@ import { Role } from '../../../roles/models/role.model';
             <td>{{ user.firstName }}</td>
             <td>{{ user.lastName }}</td>
             <td>{{ user.age }}</td>
+            <td>{{ user.role }}</td>
             <td>
-              <select 
-                [ngModel]="user.role"
-                (ngModelChange)="onRoleChange(user, $event)">
-                <option [ngValue]="null" disabled>Selecciona un role</option>
-                <option *ngFor="let role of roles" [value]="role.id">
-                  {{ role.name }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <button (click)="edit.emit(user)">Editar</button>
-              <button (click)="delete.emit(user.id)" class="btn-danger">Eliminar</button>
+              <button (click)="onEditingUser(user)" class="btn-primary">Editar</button>
+              <button (click)="openDeleteDialog(user.id)" class="btn-danger">Eliminar</button>
             </td>
           </tr>
-          <tr *ngIf="users.length === 0">
-            <td colspan="5" class="empty">No hay usuarios registrados.</td>
-          </tr>
+          @if (users?.length === 0) {
+            <tr>
+              <td colspan="5" class="empty">No hay usuarios registrados.</td>
+            </tr>
+          }
         </tbody>
       </table>
+
+      <app-confirm-dialog
+        [isOpen]="isDialogOpen"
+        title="Eliminar usuario"
+        message="¿Estás seguro de eliminar este usuario?"
+        (confirm)="onConfirmDelete()"
+        (cancel)="closeDialog()">
+      </app-confirm-dialog>
+    }
+
     </div>
   `,
   styles: `
-    .roles-list { width: 100%; }
+    .users-list { width: 100%; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #ddd; text-align: left; }
     th { background: #f5f5f5; font-weight: 600; }
@@ -62,13 +70,40 @@ import { Role } from '../../../roles/models/role.model';
   `
 })
 export class UsersListComponent {
-  @Input() loading = false;
-  @Input() users: User[] = [];
-  @Input() roles: Role[] = [];
-  @Output() edit = new EventEmitter<User>();
+  @Input() loading: boolean | null = false;
+  @Input() users: User[] | null = [];
   @Output() delete = new EventEmitter<number>();
+  editingRole: Role | null = null;
 
-  onRoleChange(user: User, newRoleId: string) {
-    user.role = newRoleId;
+  private readonly store = inject(Store);
+  private readonly router = inject(Router);
+
+  isDialogOpen = false;
+  userToDeleteId: number | null = null;
+
+  onEditingUser(user: User): void {
+    console.log(user);
+    this.store.dispatch(UsersActions.isEditing({ isEditing: true }));
+    this.router.navigate(['/usuarios/editar', user.id]);
   }
+
+  closeDialog(): void {
+    this.isDialogOpen = false;
+    this.userToDeleteId = null;
+  }
+
+  openDeleteDialog(id: number | undefined): void {
+    if (id !== undefined) {
+      this.userToDeleteId = id;
+      this.isDialogOpen = true;
+    }
+  }
+
+  onConfirmDelete(): void {
+    if (this.userToDeleteId !== null) {
+      this.store.dispatch(UsersActions.deleteUser({ id: this.userToDeleteId }));
+    }
+    this.closeDialog();
+  }
+
 }

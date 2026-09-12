@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Role } from '../../models/role.model';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-roles-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfirmDialogComponent],
   template: `
     <div class="roles-list">
       <div *ngIf="loading" class="loading">Cargando roles...</div>
@@ -26,7 +27,7 @@ import { Role } from '../../models/role.model';
             <td>{{ role.createdAt | date:'short' }}</td>
             <td>
               <button (click)="edit.emit(role)">Editar</button>
-              <button (click)="delete.emit(role.id)" class="btn-danger">Eliminar</button>
+              <button (click)="openDeleteDialog(role.id)" class="btn-danger">Eliminar</button>
             </td>
           </tr>
           <tr *ngIf="roles.length === 0">
@@ -34,6 +35,13 @@ import { Role } from '../../models/role.model';
           </tr>
         </tbody>
       </table>
+      <app-confirm-dialog
+        [isOpen]="isDialogOpen"
+        title="Eliminar rol"
+        message="¿Estás seguro de eliminar este rol?"
+        (confirm)="onConfirmDelete()"
+        (cancel)="closeDialog()">
+      </app-confirm-dialog>
     </div>
   `,
   styles: `
@@ -52,4 +60,24 @@ export class RolesListComponent {
   @Input() loading = false;
   @Output() edit = new EventEmitter<Role>();
   @Output() delete = new EventEmitter<string>();
+
+  isDialogOpen = false;
+  roleToDeleteId: string | null = null;
+
+  openDeleteDialog(id: string): void {
+    this.roleToDeleteId = id;
+    this.isDialogOpen = true;
+  }
+
+  onConfirmDelete(): void {
+    if (this.roleToDeleteId !== null) {
+      this.delete.emit(this.roleToDeleteId);
+    }
+    this.closeDialog();
+  }
+
+  closeDialog(): void {
+    this.isDialogOpen = false;
+    this.roleToDeleteId = null;
+  }
 }

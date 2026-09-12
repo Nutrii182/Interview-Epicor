@@ -1,9 +1,16 @@
 
-<nav class="app-nav">
-  <span class="app-nav__brand">&#9679; MyApp</span>
-  <a routerLink="/roles" routerLinkActive="active" class="app-nav__link">Roles</a>
-  <a routerLink="/usuarios" routerLinkActive="active" class="app-nav__link">Usuarios</a>
-  <span class="app-nav__date">{{ today }}</span>
-</nav>
-
-<router-outlet />
+@if (isInitialized$ | async) {
+  <nav class="app-nav">
+    <span class="app-nav__brand">&#9679; MyApp</span>
+    <a routerLink="/roles" routerLinkActive="active" class="app-nav__link">Roles</a>
+    <a routerLink="/usuarios" routerLinkActive="active" class="app-nav__link">Usuarios</a>
+    <span class="app-nav__date">{{ today }}</span>
+  </nav>
+  
+  <router-outlet />
+} @else {
+  <div class="app-init-loader">
+    <div class="spinner"></div>
+    <p>Inicializando aplicación...</p>
+  </div>
+}
